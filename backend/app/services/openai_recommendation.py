@@ -1,7 +1,7 @@
 from openai import OpenAI
 
-from ..core.config import settings
-from ..schemas.events import EventRequest, Event
+from app.core.config import settings
+from app.schemas.events import EventRequest, Event
 from .recommendation_service import EventRecommendationService
 
 
@@ -19,12 +19,15 @@ class OpenAIRecommendationService(EventRecommendationService):
             tools=[{"type": "web_search_preview"}],
             instructions=self._system_prompt,
             input=user_message,
-            temperature=0.3,
+            temperature=0.2,
         )
         text = ""
         for item in response.output:
             if item.type == "message":
                 for block in item.content:
                     if block.type == "output_text":
-                        text = block.text
-        return self._parse_events(text)
+                        text = block.text                      
+        events = self._parse_events(text)
+        events = self._validate_events(events, request)
+        events = self._filter_by_time(events, request)
+        return self._sort(events)

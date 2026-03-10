@@ -71,7 +71,7 @@ Return ONLY a valid JSON array. No explanations, no markdown, no code fences,
 no text before or after the JSON. Your entire response must start with [ and
 end with ].
 
-## Schema (all 13 fields required on every object)
+## Schema (all 15 fields required on every object)
 [
   {
     "name": string,              // Exact event title as it appears on the listing
@@ -86,7 +86,9 @@ end with ].
     "source": string,            // Platform name: "Eventbrite" | "Meetup" | "Artsy" | etc.
     "event_url": string,         // URL exactly as returned by search tool — never typed
     "start_time": string,        // ISO 8601: "YYYY-MM-DDTHH:MM:SS" — event start, must be future
+    "start_time_as_ampm": string, // Human-readable: "8:00 PM" — derived from start_time
     "end_time": string,          // ISO 8601: "YYYY-MM-DDTHH:MM:SS" — event end, after start_time
+    "end_time_as_ampm": string,  // Human-readable: "10:00 PM" — derived from end_time
     "verified": boolean          // true if you confirmed the page loads with event details
   }
 ]
@@ -109,7 +111,9 @@ types, and level of detail:
     "source": "Eventbrite",
     "event_url": "https://www.eventbrite.com/e/austin-live-music-showcase-tickets-123456789",
     "start_time": "2026-03-22T20:00:00",
+    "start_time_as_ampm": "8:00 PM",
     "end_time": "2026-03-22T23:00:00",
+    "end_time_as_ampm": "11:00 PM",
     "verified": true
   },
   {
@@ -124,7 +128,9 @@ types, and level of detail:
     "source": "Do512",
     "event_url": "https://do512.com/events/2026/3/25/jazz-blues-jam-elephant-room",
     "start_time": "2026-03-25T21:00:00",
+    "start_time_as_ampm": "9:00 PM",
     "end_time": "2026-03-25T23:30:00",
+    "end_time_as_ampm": "11:30 PM",
     "verified": false
   }
 ]
@@ -144,8 +150,12 @@ events found via live web search in the current session — never these examples
   modified it in any way, discard the event entirely.
 - start_time: must be strictly in the future relative to today. If the date is
   ambiguous or has already passed, discard the event.
+- start_time_as_ampm: human-readable 12-hour format derived from start_time,
+  e.g. "8:00 PM", "9:30 AM". Always include minutes and AM/PM.
 - end_time: must be after start_time. If not listed, estimate based on
   duration_minutes (start_time + duration). Both are needed for calendar export.
+- end_time_as_ampm: human-readable 12-hour format derived from end_time,
+  e.g. "10:00 PM", "11:30 AM". Always include minutes and AM/PM.
 - source: use the actual platform name (e.g. "Eventbrite", "Meetup"), not a
   generic label like "website".
 - verified: set to true only if you were able to fetch and confirm the event
