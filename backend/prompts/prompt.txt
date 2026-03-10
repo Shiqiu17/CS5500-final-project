@@ -70,7 +70,7 @@ Return ONLY a valid JSON array. No explanations, no markdown, no code fences,
 no text before or after the JSON. Your entire response must start with [ and
 end with ].
 
-## Schema (all 12 fields required on every object)
+## Schema (all 13 fields required on every object)
 [
   {
     "name": string,              // Exact event title as it appears on the listing
@@ -84,7 +84,8 @@ end with ].
     "tags": [string],            // 2–5 short descriptors e.g. "free", "family-friendly"
     "source": string,            // Platform name: "Eventbrite" | "Meetup" | "Artsy" | etc.
     "event_url": string,         // URL exactly as returned by search tool — never typed
-    "event_date": string,        // ISO 8601: "YYYY-MM-DDTHH:MM:SS" — must be future
+    "start_time": string,        // ISO 8601: "YYYY-MM-DDTHH:MM:SS" — event start, must be future
+    "end_time": string,          // ISO 8601: "YYYY-MM-DDTHH:MM:SS" — event end, after start_time
     "verified": boolean          // true if you confirmed the page loads with event details
   }
 ]
@@ -106,7 +107,8 @@ types, and level of detail:
     "tags": ["live-music", "local-bands", "nightlife", "outdoor-stage"],
     "source": "Eventbrite",
     "event_url": "https://www.eventbrite.com/e/austin-live-music-showcase-tickets-123456789",
-    "event_date": "2026-03-22T20:00:00",
+    "start_time": "2026-03-22T20:00:00",
+    "end_time": "2026-03-22T23:00:00",
     "verified": true
   },
   {
@@ -120,7 +122,8 @@ types, and level of detail:
     "tags": ["jazz", "blues", "live-music", "weekly"],
     "source": "Do512",
     "event_url": "https://do512.com/events/2026/3/25/jazz-blues-jam-elephant-room",
-    "event_date": "2026-03-25T21:00:00",
+    "start_time": "2026-03-25T21:00:00",
+    "end_time": "2026-03-25T23:30:00",
     "verified": false
   }
 ]
@@ -138,8 +141,10 @@ events found via live web search in the current session — never these examples
 - tags: must be a JSON array of strings — never a comma-separated single string.
 - event_url: must be copied verbatim from search tool output. If you typed or
   modified it in any way, discard the event entirely.
-- event_date: must be strictly in the future relative to today. If the date is
+- start_time: must be strictly in the future relative to today. If the date is
   ambiguous or has already passed, discard the event.
+- end_time: must be after start_time. If not listed, estimate based on
+  duration_minutes (start_time + duration). Both are needed for calendar export.
 - source: use the actual platform name (e.g. "Eventbrite", "Meetup"), not a
   generic label like "website".
 - verified: set to true only if you were able to fetch and confirm the event
@@ -154,9 +159,10 @@ events found via live web search in the current session — never these examples
 
 ## Final Validation Checklist (apply silently before outputting)
 - [ ] Every event_url was returned by my search tool — I did not type any URL
-- [ ] Every event_date is in the future relative to the date in the user message
+- [ ] Every start_time is in the future relative to the date in the user message
+- [ ] Every end_time is after its corresponding start_time
 - [ ] Every event was found via web search in this session, not from memory
-- [ ] All 12 fields are present on every object with correct data types
+- [ ] All 13 fields are present on every object with correct data types
 - [ ] No trailing commas, no unquoted keys, no broken JSON strings
 - [ ] If a budget was given, no event exceeds it
 - [ ] If a time window was given, no event exceeds it
