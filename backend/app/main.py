@@ -8,7 +8,7 @@ Routers:
 """
 from fastapi import FastAPI
 from .middleware.cors import add_cors_middleware
-from .routers import health
+from .routers import health, events
 
 
 app = FastAPI()
@@ -19,3 +19,4 @@ def root():
     """A simple root endpoint to verify that the API is running."""
     return {"app": "WhatToDo API"}
 app.include_router(health.router)
+app.include_router(events.router)
