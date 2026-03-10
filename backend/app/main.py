@@ -10,5 +10,3 @@ add_cors_middleware(app)
 def root():
     """A simple root endpoint to verify that the API is running."""
     return {"app": "WhatToDo API"}
-
-
