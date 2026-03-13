@@ -9,6 +9,7 @@ BACKEND_DIR = Path(__file__).resolve().parents[2]
 class Settings(BaseSettings):
     openai_api_key: str
     claude_api_key: str
+    database_url: str
 
     model_config = {
         "env_file": ".env",

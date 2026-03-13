@@ -2,10 +2,38 @@
 
 ## Building and Running the API
 
-1. Create a `.env` file in the root directory of the project and add the following environment variables:
+### Option A: Run locally (no Docker required)
+
+1. Create a `.env` file in the `backend/` directory:
     ```env
     APP_PORT=3000
+    OPENAI_API_KEY="your_openai_api_key"
+    CLAUDE_API_KEY="your_claude_api_key"
+    DATABASE_URL=sqlite:///./whattodo.db
     ```
+
+2. Install dependencies:
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+3. Set up the database (first time only):
+    ```bash
+    alembic revision --autogenerate -m "init"
+    alembic upgrade head
+    ```
+    This creates a `whattodo.db` file with all the required tables.
+
+4. Start the server:
+    ```bash
+    uvicorn app.main:app --reload --port 3000
+    ```
+
+The API will be available at `http://localhost:3000`.
+
+### Option B: Run with Docker
+
+1. Create a `.env` file in the `backend/` directory (see `example.env` for all required variables).
 
 2. Build and start the service:
     ```bash
@@ -13,6 +41,46 @@
     ```
 
 The API will be available at `http://localhost:3000`.
+
+---
+
+## Database
+
+The database uses **SQLite** for local development. The database file is created at `backend/whattodo.db` after running migrations.
+
+### Tables
+
+| Table | Description |
+|---|---|
+| `users` | Registered user accounts |
+| `search_history` | Record of searches made by each user |
+| `saved_events` | Events bookmarked by users |
+
+### Key Files
+
+| File | Description |
+|---|---|
+| `app/db/database.py` | Database connection and `get_db()` dependency |
+| `app/models/user.py` | User table schema |
+| `app/models/search_history.py` | Search history table schema |
+| `app/models/saved_event.py` | Saved events table schema |
+| `alembic/` | Migration configuration and version history |
+| `alembic/versions/` | Auto-generated migration scripts |
+
+### Viewing the Database
+
+You can inspect the database using [DBeaver](https://dbeaver.io/):
+1. Open DBeaver → New Database Connection → SQLite
+2. Select file: `backend/whattodo.db`
+3. All tables and data will be visible
+
+### Running Migrations
+
+If you change any model in `app/models/`, run:
+```bash
+alembic revision --autogenerate -m "describe your change"
+alembic upgrade head
+```
 
 ## API Endpoints
 

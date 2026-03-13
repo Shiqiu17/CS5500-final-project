@@ -43,3 +43,7 @@ watchfiles==1.1.1
 websockets==16.0
 openai==1.68.2
 anthropic==0.49.0
+sqlalchemy==2.0.40
+alembic==1.15.2
+passlib[bcrypt]==1.7.4
+python-jose[cryptography]==3.3.0
