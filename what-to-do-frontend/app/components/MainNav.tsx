@@ -13,6 +13,9 @@ export default function MainNav() {
           <Link href="/" className={styles.link}>
             Home
           </Link>
+          <Link href="/itinerary" className={styles.link}>
+            Itinerary
+          </Link>
         </nav>
       </div>
     </header>
