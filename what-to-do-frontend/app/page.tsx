@@ -29,25 +29,23 @@ type PlannerRequestPayload = {
   interests: string[];
 };
 
-type ItineraryItem = {
+type ItineraryActivity = {
   id: string;
   time: string;
-  title: string;
-  description: string;
-  category: string;
-  estimatedCost: number | null;
-  address?: string;
+  location: string;
+  activity: string;
+  activityType: string;
+  price: number | null;
+  info: string;
+  website?: string;
 };
 
 type ItineraryResponse = {
   title: string;
   date: string;
-  location: string;
+  city: string;
   summary: string;
-  preference: string;
-  budget: number | null;
-  interests: string[];
-  items: ItineraryItem[];
+  activities: ItineraryActivity[];
 };
 
 export default function HomePage() {
@@ -62,6 +60,7 @@ export default function HomePage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<ItineraryResponse | null>(null);
+  const [savedActivityIds, setSavedActivityIds] = useState<string[]>([]);
 
   function handleChange(
     event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -88,6 +87,12 @@ export default function HomePage() {
     };
   }
 
+  function formatPrice(price: number | null) {
+    if (price === null) return "N/A";
+    if (price === 0) return "Free";
+    return `$${price}`;
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsSubmitting(true);
@@ -97,54 +102,105 @@ export default function HomePage() {
     try {
       console.log("Planner payload:", payload);
 
-      // TODO: Replace this mock response with real backend response
       const mockResponse: ItineraryResponse = {
         title: `Plan for ${payload.location || "Your Day"}`,
         date: payload.date,
-        location: payload.location,
+        city: payload.location || "Selected city",
         summary:
           "A personalized itinerary generated from your preferences, budget, and interests.",
-        preference: payload.preference,
-        budget: payload.budget,
-        interests: payload.interests,
-        items: [
+        activities: [
           {
             id: "1",
             time: "10:00 AM",
-            title: "Coffee and breakfast",
-            description: "Start your day with a casual breakfast nearby.",
-            category: "Food",
-            estimatedCost: 15,
-            address: "Nearby cafe",
+            location: "Blue Bottle Coffee",
+            activity: "Coffee and breakfast",
+            activityType: "Food",
+            price: 18,
+            info: "A casual breakfast stop with coffee and light options.",
+            website: "https://example.com/coffee",
           },
           {
             id: "2",
-            time: "12:00 PM",
-            title: "Local activity stop",
-            description: "Visit a place that matches your selected interests.",
-            category: "Activity",
-            estimatedCost: 20,
-            address: payload.location || "Selected area",
+            time: "12:30 PM",
+            location: payload.location || "Downtown area",
+            activity: "Explore a local market",
+            activityType: "Market",
+            price: 0,
+            info: "A walkable stop with vendors, snacks, and local shops.",
+            website: "https://example.com/market",
           },
           {
             id: "3",
             time: "3:00 PM",
-            title: "Relaxed afternoon activity",
-            description: "Enjoy a flexible activity based on your preference.",
-            category: payload.preference,
-            estimatedCost: payload.budget ? Math.min(payload.budget, 30) : 25,
-            address: payload.location || "Selected area",
+            location: payload.location || "Park district",
+            activity: "Afternoon outdoor activity",
+            activityType: payload.preference,
+            price: payload.budget ? Math.min(payload.budget, 30) : 25,
+            info: "A flexible activity selected from your preferences and time range.",
+            website: "https://example.com/activity",
           },
         ],
       };
 
       setResult(mockResponse);
+      setSavedActivityIds([]);
+
+      // Real backend example:
+      // const response = await fetch("http://localhost:8000/api/plan", {
+      //   method: "POST",
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //   },
+      //   body: JSON.stringify(payload),
+      // });
+      //
+      // if (!response.ok) {
+      //   throw new Error("Failed to generate itinerary");
+      // }
+      //
+      // const data: ItineraryResponse = await response.json();
+      // setResult(data);
+      // setSavedActivityIds([]);
     } catch (error) {
       console.error("Submit error:", error);
       alert("Something went wrong while generating the itinerary.");
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  function handleToggleSave(activity: ItineraryActivity) {
+    const isSaved = savedActivityIds.includes(activity.id);
+
+    if (isSaved) {
+      console.log("Remove saved activity:", activity.id);
+
+      // TODO: backend api call
+
+      setSavedActivityIds((prev) =>
+        prev.filter((savedId) => savedId !== activity.id),
+      );
+      return;
+    }
+
+    const savePayload = {
+      id: activity.id,
+      date: result?.date ?? "",
+      city: result?.city ?? "",
+      time: activity.time,
+      location: activity.location,
+      activity: activity.activity,
+      activityType: activity.activityType,
+      price: activity.price,
+      info: activity.info,
+      website: activity.website ?? "",
+    };
+
+    console.log("Save activity:", savePayload);
+
+    // TODO: backend api call
+
+    setSavedActivityIds((prev) => [...prev, activity.id]);
   }
 
   return (
@@ -279,56 +335,66 @@ export default function HomePage() {
 
           <div className={styles.resultMeta}>
             <span className={styles.metaPill}>{result.date || "No date"}</span>
+            <span className={styles.metaPill}>{result.city || "No city"}</span>
             <span className={styles.metaPill}>
-              {result.location || "No location"}
-            </span>
-            <span className={styles.metaPill}>{result.preference}</span>
-            <span className={styles.metaPill}>
-              Budget: {result.budget === null ? "N/A" : `$${result.budget}`}
+              {result.activities.length} activities
             </span>
           </div>
 
-          {result.interests.length > 0 && (
-            <div className={styles.interestRow}>
-              {result.interests.map((interest) => (
-                <span key={interest} className={styles.interestTag}>
-                  {interest}
-                </span>
-              ))}
-            </div>
-          )}
-
           <div className={styles.resultList}>
-            {result.items.map((item) => (
-              <article key={item.id} className={styles.resultCard}>
-                <div className={styles.resultTime}>{item.time}</div>
+            {result.activities.map((activity) => {
+              const isSaved = savedActivityIds.includes(activity.id);
 
-                <div className={styles.resultContent}>
-                  <div className={styles.resultTopRow}>
-                    <div>
-                      <h3>{item.title}</h3>
-                      <p className={styles.resultCategory}>{item.category}</p>
+              return (
+                <article key={activity.id} className={styles.resultCard}>
+                  <div className={styles.resultTime}>{activity.time}</div>
+
+                  <div className={styles.resultContent}>
+                    <div className={styles.resultTopRow}>
+                      <div>
+                        <h3>{activity.activity}</h3>
+                        <p className={styles.resultCategory}>
+                          {activity.activityType}
+                        </p>
+                      </div>
+
+                      <div className={styles.resultRight}>
+                        <span className={styles.resultCost}>
+                          {formatPrice(activity.price)}
+                        </span>
+
+                        <button
+                          type="button"
+                          className={
+                            isSaved ? styles.savedButton : styles.saveButton
+                          }
+                          onClick={() => handleToggleSave(activity)}
+                        >
+                          {isSaved ? "Remove" : "Save"}
+                        </button>
+                      </div>
                     </div>
 
-                    <span className={styles.resultCost}>
-                      {item.estimatedCost === null
-                        ? "N/A"
-                        : item.estimatedCost === 0
-                          ? "Free"
-                          : `$${item.estimatedCost}`}
-                    </span>
-                  </div>
-
-                  <p className={styles.resultDescription}>{item.description}</p>
-
-                  {item.address && (
                     <p className={styles.resultAddress}>
-                      <span>Location:</span> {item.address}
+                      <span>Location:</span> {activity.location}
                     </p>
-                  )}
-                </div>
-              </article>
-            ))}
+
+                    <p className={styles.resultDescription}>{activity.info}</p>
+
+                    {activity.website && (
+                      <a
+                        href={activity.website}
+                        target="_blank"
+                        rel="noreferrer"
+                        className={styles.websiteLink}
+                      >
+                        Visit website
+                      </a>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
           </div>
         </section>
       )}
