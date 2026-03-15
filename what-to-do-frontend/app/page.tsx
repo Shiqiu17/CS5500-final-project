@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import styles from "./page.module.css";
+
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
 
 const features = [
   "Smart recommendations",
@@ -21,12 +24,30 @@ type PlannerFormData = {
 };
 
 type PlannerRequestPayload = {
+  city: string;
+  interests: string;
+  budget: number;
+  dateRange: string;
+  dayStartTime: string;
+  dayEndTime: string;
+};
+
+type RecommendationApiItem = {
+  name: string;
+  description: string;
   location: string;
-  date: string;
-  timeRange: string;
-  budget: number | null;
-  preference: string;
-  interests: string[];
+  category: string;
+  estimated_cost: number;
+  duration_minutes: number;
+  indoor: boolean;
+  tags: string[];
+  source: string;
+  event_url: string;
+  start_time: string;
+  start_time_as_ampm: string;
+  end_time: string;
+  end_time_as_ampm: string;
+  verified: boolean;
 };
 
 type ItineraryActivity = {
@@ -48,6 +69,90 @@ type ItineraryResponse = {
   activities: ItineraryActivity[];
 };
 
+type SavedEventResponse = {
+  id: number;
+  user_id: number;
+  title: string;
+  date: string;
+  time: string;
+  location: string;
+  tag: string;
+  price: string;
+  saved_at: string;
+};
+
+function getAccessToken(): string | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  return localStorage.getItem("access_token");
+}
+
+function getAuthHeaders(): Record<string, string> {
+  const token = getAccessToken();
+
+  if (!token) {
+    return {};
+  }
+
+  return {
+    Authorization: `Bearer ${token}`,
+  };
+}
+
+function parseTimeRange(timeRange: string) {
+  const [rawStart = "", rawEnd = ""] = timeRange.split("-");
+
+  return {
+    dayStartTime: rawStart.trim(),
+    dayEndTime: rawEnd.trim(),
+  };
+}
+
+function buildRecommendationPayload(
+  formData: PlannerFormData,
+): PlannerRequestPayload {
+  const { dayStartTime, dayEndTime } = parseTimeRange(formData.timeRange);
+
+  return {
+    city: formData.location.trim(),
+    interests: formData.interests.trim(),
+    budget: formData.budget === "" ? 0 : Number(formData.budget),
+    dateRange: formData.date,
+    dayStartTime,
+    dayEndTime,
+  };
+}
+
+function normalizeRecommendations(
+  items: RecommendationApiItem[],
+): ItineraryActivity[] {
+  return items.map((item, index) => ({
+    id: `${item.name}-${item.start_time}-${index}`,
+    time: item.start_time_as_ampm || item.start_time || "TBD",
+    location: item.location,
+    activity: item.name,
+    activityType: item.category,
+    price: typeof item.estimated_cost === "number" ? item.estimated_cost : null,
+    info: item.description,
+    website: item.event_url || undefined,
+  }));
+}
+
+function buildResult(
+  payload: PlannerRequestPayload,
+  activities: ItineraryActivity[],
+): ItineraryResponse {
+  return {
+    title: `Plan for ${payload.city || "Your Day"}`,
+    date: payload.dateRange,
+    city: payload.city || "Selected city",
+    summary: "A personalized itinerary generated from your preferences.",
+    activities,
+  };
+}
+
 export default function HomePage() {
   const [formData, setFormData] = useState<PlannerFormData>({
     location: "",
@@ -61,7 +166,14 @@ export default function HomePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<ItineraryResponse | null>(null);
   const [savedActivityIds, setSavedActivityIds] = useState<string[]>([]);
-  const [isLoggedIn] = useState(false);
+  const [savedRecordIds, setSavedRecordIds] = useState<Record<string, number>>(
+    {},
+  );
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    setIsLoggedIn(!!getAccessToken());
+  }, []);
 
   function handleChange(
     event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -74,20 +186,6 @@ export default function HomePage() {
     }));
   }
 
-  function buildPayload(data: PlannerFormData): PlannerRequestPayload {
-    return {
-      location: data.location.trim(),
-      date: data.date,
-      timeRange: data.timeRange.trim(),
-      budget: data.budget === "" ? null : Number(data.budget),
-      preference: data.preference,
-      interests: data.interests
-        .split(",")
-        .map((item) => item.trim())
-        .filter(Boolean),
-    };
-  }
-
   function formatPrice(price: number | null) {
     if (price === null) return "N/A";
     if (price === 0) return "Free";
@@ -98,70 +196,37 @@ export default function HomePage() {
     event.preventDefault();
     setIsSubmitting(true);
 
-    const payload = buildPayload(formData);
+    const payload = buildRecommendationPayload(formData);
 
     try {
-      console.log("Planner payload:", payload);
+      const response = await fetch(
+        `${API_BASE_URL}/events/recommendations?provider=claude`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            city: payload.city,
+            interests: payload.interests,
+            budget: payload.budget,
+            date_range: payload.dateRange,
+            day_start_time: payload.dayStartTime,
+            day_end_time: payload.dayEndTime,
+          }),
+        },
+      );
 
-      const mockResponse: ItineraryResponse = {
-        title: `Plan for ${payload.location || "Your Day"}`,
-        date: payload.date,
-        city: payload.location || "Selected city",
-        summary:
-          "A personalized itinerary generated from your preferences, budget, and interests.",
-        activities: [
-          {
-            id: "1",
-            time: "10:00 AM",
-            location: "Blue Bottle Coffee",
-            activity: "Coffee and breakfast",
-            activityType: "Food",
-            price: 18,
-            info: "A casual breakfast stop with coffee and light options.",
-            website: "https://example.com/coffee",
-          },
-          {
-            id: "2",
-            time: "12:30 PM",
-            location: payload.location || "Downtown area",
-            activity: "Explore a local market",
-            activityType: "Market",
-            price: 0,
-            info: "A walkable stop with vendors, snacks, and local shops.",
-            website: "https://example.com/market",
-          },
-          {
-            id: "3",
-            time: "3:00 PM",
-            location: payload.location || "Park district",
-            activity: "Afternoon outdoor activity",
-            activityType: payload.preference,
-            price: payload.budget ? Math.min(payload.budget, 30) : 25,
-            info: "A flexible activity selected from your preferences and time range.",
-            website: "https://example.com/activity",
-          },
-        ],
-      };
+      if (!response.ok) {
+        throw new Error("Failed to generate itinerary");
+      }
 
-      setResult(mockResponse);
+      const data: RecommendationApiItem[] = await response.json();
+      const activities = normalizeRecommendations(data);
+
+      setResult(buildResult(payload, activities));
       setSavedActivityIds([]);
-
-      // TODO: Replace this with real API call
-      // const response = await fetch("http://localhost:8000/api/plan", {
-      //   method: "POST",
-      //   headers: {
-      //     "Content-Type": "application/json",
-      //   },
-      //   body: JSON.stringify(payload),
-      // });
-      //
-      // if (!response.ok) {
-      //   throw new Error("Failed to generate itinerary");
-      // }
-      //
-      // const data: ItineraryResponse = await response.json();
-      // setResult(data);
-      // setSavedActivityIds([]);
+      setSavedRecordIds({});
     } catch (error) {
       console.error("Submit error:", error);
       alert("Something went wrong while generating the itinerary.");
@@ -170,7 +235,7 @@ export default function HomePage() {
     }
   }
 
-  function handleToggleSave(activity: ItineraryActivity) {
+  async function handleToggleSave(activity: ItineraryActivity) {
     if (!isLoggedIn) {
       alert("Please log in to save activities.");
       return;
@@ -179,34 +244,81 @@ export default function HomePage() {
     const isSaved = savedActivityIds.includes(activity.id);
 
     if (isSaved) {
-      console.log("Remove saved activity:", activity.id);
+      const savedRecordId = savedRecordIds[activity.id];
 
-      // TODO: backend api call
+      if (!savedRecordId) {
+        alert("Could not find the saved record id.");
+        return;
+      }
 
-      setSavedActivityIds((prev) =>
-        prev.filter((savedId) => savedId !== activity.id),
-      );
+      try {
+        const response = await fetch(`${API_BASE_URL}/saved/${savedRecordId}`, {
+          method: "DELETE",
+          headers: {
+            ...getAuthHeaders(),
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to delete saved event");
+        }
+
+        setSavedActivityIds((prev) =>
+          prev.filter((savedId) => savedId !== activity.id),
+        );
+
+        setSavedRecordIds((prev) => {
+          const next = { ...prev };
+          delete next[activity.id];
+          return next;
+        });
+      } catch (error) {
+        console.error("Delete save error:", error);
+        alert("Something went wrong while removing the saved activity.");
+      }
+
       return;
     }
 
     const savePayload = {
-      id: activity.id,
+      title: activity.activity,
       date: result?.date ?? "",
-      city: result?.city ?? "",
       time: activity.time,
       location: activity.location,
-      activity: activity.activity,
-      activityType: activity.activityType,
-      price: activity.price,
-      info: activity.info,
-      website: activity.website ?? "",
+      tag: activity.activityType,
+      price:
+        activity.price === null
+          ? "N/A"
+          : activity.price === 0
+            ? "Free"
+            : String(activity.price),
     };
 
-    console.log("Save activity:", savePayload);
+    try {
+      const response = await fetch(`${API_BASE_URL}/saved`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaders(),
+        },
+        body: JSON.stringify(savePayload),
+      });
 
-    // TODO: backend api call
+      if (!response.ok) {
+        throw new Error("Failed to save activity");
+      }
 
-    setSavedActivityIds((prev) => [...prev, activity.id]);
+      const savedData: SavedEventResponse = await response.json();
+
+      setSavedActivityIds((prev) => [...prev, activity.id]);
+      setSavedRecordIds((prev) => ({
+        ...prev,
+        [activity.id]: savedData.id,
+      }));
+    } catch (error) {
+      console.error("Save error:", error);
+      alert("Something went wrong while saving the activity.");
+    }
   }
 
   return (
