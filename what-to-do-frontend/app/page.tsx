@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import styles from "./page.module.css";
+import { useAuth } from "./contexts/AuthContext";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
@@ -81,17 +82,7 @@ type SavedEventResponse = {
   saved_at: string;
 };
 
-function getAccessToken(): string | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  return localStorage.getItem("access_token");
-}
-
-function getAuthHeaders(): Record<string, string> {
-  const token = getAccessToken();
-
+function getAuthHeaders(token: string | null): Record<string, string> {
   if (!token) {
     return {};
   }
@@ -154,6 +145,8 @@ function buildResult(
 }
 
 export default function HomePage() {
+  const { isLoggedIn, isLoading, token } = useAuth();
+
   const [formData, setFormData] = useState<PlannerFormData>({
     location: "",
     date: "",
@@ -169,11 +162,6 @@ export default function HomePage() {
   const [savedRecordIds, setSavedRecordIds] = useState<Record<string, number>>(
     {},
   );
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  useEffect(() => {
-    setIsLoggedIn(!!getAccessToken());
-  }, []);
 
   function handleChange(
     event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -200,7 +188,7 @@ export default function HomePage() {
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/events/recommendations?provider=claude`,
+        `${API_BASE_URL}/events/recommendations?provider=openai`,
         {
           method: "POST",
           headers: {
@@ -236,6 +224,10 @@ export default function HomePage() {
   }
 
   async function handleToggleSave(activity: ItineraryActivity) {
+    if (isLoading) {
+      return;
+    }
+
     if (!isLoggedIn) {
       alert("Please log in to save activities.");
       return;
@@ -255,7 +247,7 @@ export default function HomePage() {
         const response = await fetch(`${API_BASE_URL}/saved/${savedRecordId}`, {
           method: "DELETE",
           headers: {
-            ...getAuthHeaders(),
+            ...getAuthHeaders(token),
           },
         });
 
@@ -299,7 +291,7 @@ export default function HomePage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...getAuthHeaders(),
+          ...getAuthHeaders(token),
         },
         body: JSON.stringify(savePayload),
       });
