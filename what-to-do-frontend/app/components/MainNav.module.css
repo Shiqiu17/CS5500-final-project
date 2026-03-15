@@ -44,3 +44,30 @@
   background: #eef2ff;
   color: #4338ca;
 }
+
+.userId {
+  font-size: 0.85rem;
+  color: #64748b;
+  padding: 6px 10px;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.linkButton {
+  background: none;
+  border: none;
+  font: inherit;
+  cursor: pointer;
+  color: #334155;
+  padding: 10px 14px;
+  border-radius: 999px;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.linkButton:hover {
+  background: #eef2ff;
+  color: #4338ca;
+}

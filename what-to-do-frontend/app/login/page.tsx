@@ -4,15 +4,16 @@ import { useState } from "react";
 import type { FormEvent, ChangeEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAuth } from "../contexts/AuthContext";
 import styles from "./page.module.css";
 
-// Backend API base URL (e.g. Django / FastAPI on port 8000)
 const API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:8000";
 const LOGIN_ENDPOINT = `${API_BASE}/api/auth/login`;
 
 export default function LoginPage() {
   const router = useRouter();
+  const { setAuth } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -74,14 +75,22 @@ export default function LoginPage() {
       //   setErrorMessage(message);
       //   return;
       // }
-      // if (data.access_token) {
-      //   // localStorage.setItem("token", data.access_token);
+      // if (data.access_token && data.user) {
+      //   setAuth({
+      //     user: { id: String(data.user.id), username: data.user.username, email: data.user.email },
+      //     token: data.access_token,
+      //   });
+      //   router.push("/");
+      //   router.refresh();
+      //   return;
       // }
-      // router.push("/");
-      // router.refresh();
 
-      // Mock: no backend yet — just redirect to home for now
-      console.log("Login payload (no backend):", payload);
+      // Mock: no backend yet — set auth state and user, then redirect
+      const mockId = "user-" + (username.trim() || "mock").toLowerCase().replace(/\s+/g, "-");
+      setAuth({
+        user: { id: mockId, username: username.trim() || undefined },
+        token: "mock-token",
+      });
       router.push("/");
       router.refresh();
     } catch (error) {
