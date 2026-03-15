@@ -1,0 +1,77 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int              @id @default(autoincrement())
+  username      String           @unique
+  email         String           @unique
+  passwordHash  String           @map("password_hash")
+  name          String?
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+  itineraries   Itinerary[]
+  savedEvents   SavedEvent[]
+
+  @@map("users")
+}
+
+model Event {
+  id               Int                @id @default(autoincrement())
+  title            String
+  description      String?
+  location         String?
+  startTime        String             @map("start_time")
+  endTime          String             @map("end_time")
+  date             String
+  tag              String?
+  price            String?
+  tips             String?
+  createdAt        DateTime           @default(now()) @map("created_at")
+  itineraryEvents  ItineraryEvent[]
+  savedEvents      SavedEvent[]
+
+  @@map("events")
+}
+
+model Itinerary {
+  id              Int                @id @default(autoincrement())
+  userId          Int                @map("user_id")
+  title           String
+  date            String
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  events          ItineraryEvent[]
+
+  @@map("itineraries")
+}
+
+model ItineraryEvent {
+  id            Int        @id @default(autoincrement())
+  itineraryId   Int        @map("itinerary_id")
+  eventId       Int        @map("event_id")
+  position      Int
+  createdAt     DateTime   @default(now()) @map("created_at")
+  itinerary     Itinerary  @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  event         Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@map("itinerary_events")
+}
+
+model SavedEvent {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  eventId   Int      @map("event_id")
+  savedAt   DateTime @default(now()) @map("saved_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+  @@map("saved_events")
+}
