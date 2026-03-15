@@ -38,6 +38,12 @@ export default function MainNav() {
               </Link>
             )
           )}
+          <Link href="/itinerary" className={styles.link}>
+            Itinerary
+          </Link>
+          <Link href="/login" className={styles.link}>
+            Login
+          </Link>
         </nav>
       </div>
     </header>
