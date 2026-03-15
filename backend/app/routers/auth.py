@@ -26,36 +26,36 @@ def create_access_token(data: dict):
 
 @router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
 def register(user_data: UserCreate, db: Session = Depends(get_db)):
-    # Check if exist
     if db.query(User).filter(User.username == user_data.username).first():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Username already exists"
         )
-    
-    # Check if exist
+
     if db.query(User).filter(User.email == user_data.email).first():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Email already exists"
         )
-    
-    # Create user
-    hashed_password = bcrypt.hashpw(user_data.password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+    hashed_password = bcrypt.hashpw(
+        user_data.password.encode("utf-8"),
+        bcrypt.gensalt()
+    ).decode("utf-8")
+
     new_user = User(
         username=user_data.username,
         email=user_data.email,
         password_hash=hashed_password,
         name=user_data.name
     )
-    
+
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
-    
-    # Generate token
-    access_token = create_access_token(data={"sub": new_user.id})
-    
+
+    access_token = create_access_token(data={"sub": str(new_user.id)})
+
     return Token(
         access_token=access_token,
         token_type="bearer",
@@ -64,20 +64,22 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login", response_model=Token)
 def login(credentials: UserLogin, db: Session = Depends(get_db)):
-    # Search for user
     user = db.query(User).filter(
-        (User.username == credentials.username) | (User.email == credentials.username)
+        (User.username == credentials.username) |
+        (User.email == credentials.username)
     ).first()
-    
-    if not user or not bcrypt.checkpw(credentials.password.encode('utf-8'), user.password_hash.encode('utf-8')):
+
+    if not user or not bcrypt.checkpw(
+        credentials.password.encode("utf-8"),
+        user.password_hash.encode("utf-8")
+    ):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid username or password"
         )
-    
-    # Generate token
-    access_token = create_access_token(data={"sub": user.id})
-    
+
+    access_token = create_access_token(data={"sub": str(user.id)})
+
     return Token(
         access_token=access_token,
         token_type="bearer",

@@ -19,23 +19,34 @@ def get_current_user(
     db: Session = Depends(get_db)
 ) -> User:
     token = credentials.credentials
-    
+
+    print("AUTH DEBUG token:", token)
+    print("AUTH DEBUG SECRET_KEY:", SECRET_KEY)
+    print("AUTH DEBUG ALGORITHM:", ALGORITHM)
+
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
-    
+
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: int = payload.get("sub")
+        print("AUTH DEBUG payload:", payload)
+
+        user_id = payload.get("sub")
+        print("AUTH DEBUG user_id:", user_id)
+
         if user_id is None:
             raise credentials_exception
-    except JWTError:
+    except JWTError as e:
+        print("AUTH DEBUG decode error:", str(e))
         raise credentials_exception
-    
+
     user = db.query(User).filter(User.id == user_id).first()
+    print("AUTH DEBUG db user:", user)
+
     if user is None:
         raise credentials_exception
-    
+
     return user
