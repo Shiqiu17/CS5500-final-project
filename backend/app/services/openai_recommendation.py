@@ -28,6 +28,6 @@ class OpenAIRecommendationService(EventRecommendationService):
                     if block.type == "output_text":
                         text = block.text                      
         events = self._parse_events(text)
-        events = self._validate_events(events, request)
+        # events = self._validate_events(events, request)
         events = self._filter_by_time(events, request)
         return self._sort(events)
