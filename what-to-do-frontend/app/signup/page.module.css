@@ -78,6 +78,16 @@
   gap: 22px;
 }
 
+/* Shown when backend returns error or validation fails */
+.errorMessage {
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: #fef2f2;
+  color: #b91c1c;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
 .sectionLabel {
   font-size: 1rem;
   font-weight: 800;
@@ -105,6 +115,27 @@
   font-size: 0.94rem;
   font-weight: 700;
   color: #334155;
+}
+
+.required {
+  color: #dc2626;
+}
+
+/* Red border and hint when field is required but missing or invalid */
+.fieldGroup.fieldGroupError input {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 2px rgba(220, 38, 38, 0.15);
+}
+
+.fieldGroup.fieldGroupError input:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.2);
+}
+
+.fieldError {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #dc2626;
 }
 
 .fieldGroup input,
