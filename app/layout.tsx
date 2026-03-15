@@ -1,4 +1,5 @@
-import "./globals.css";
+import { AuthProvider } from '@/contexts/AuthContext';
+import './globals.css';
 import MainNav from "./components/MainNav";
 import type { Metadata } from "next";
 
@@ -7,16 +8,18 @@ export const metadata: Metadata = {
   description: "AI-powered activity planning and itinerary generation",
 };
 
+
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: {
+  children: React.ReactNode
+}) {
   return (
     <html lang="en">
       <body>
-        <MainNav />
-        {children}
+        <AuthProvider>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );
