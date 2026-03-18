@@ -13,6 +13,7 @@ origins = [
     "https://cs-5500-final-project-ybji.vercel.app",
     "https://cs-5500-final-project-ybji-manuel-magana-devs-projects.vercel.app",
     "https://cs-5500-final-project-ybji-git-main-manuel-magana-devs-projects.vercel.app",
+    "https://what-to-do-app-two.vercel.app",
     "https://vercel.live",
 ]
 
