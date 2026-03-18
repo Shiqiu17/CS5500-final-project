@@ -7,7 +7,8 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.schemas.events import Event
-
+from app.main import app
+from app.routers import events as events_module
 
 SAMPLE_EVENT = {
     "name": "Jazz Night",
@@ -32,8 +33,6 @@ VALID_REQUEST = {"city": "NYC", "interests": "jazz"}
 
 @pytest.fixture
 def client():
-    from app.main import app
-    from app.routers import events as events_module
 
     mock_openai = MagicMock()
     mock_claude = MagicMock()
