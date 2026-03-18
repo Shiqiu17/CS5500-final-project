@@ -11,10 +11,10 @@ from .middleware.cors import add_cors_middleware
 from .routers import health, events, planner
 from .routers.auth import router as auth_router
 from .routers.saved import router as saved_router
-from .db.database import engine, Base
+from .db.database import init_db
 
 
-Base.metadata.create_all(bind=engine)
+init_db()
 
 app = FastAPI()
 add_cors_middleware(app)

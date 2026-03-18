@@ -1,9 +1,9 @@
 """Shared test configuration.
 
-Set DATABASE_URL to an in-memory SQLite database before any app modules
-are imported, so that tests can run without a live PostgreSQL instance.
+Override DATABASE_URL so tests connect to the Postgres container
+via localhost instead of the Docker-internal 'database' hostname.
 """
 
 import os
 
-os.environ["DATABASE_URL"] = "sqlite:///./test.db"
+os.environ["DATABASE_URL"] = os.getenv("DATABASE_URL", "sqlite:///./whattodo.db")
