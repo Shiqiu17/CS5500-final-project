@@ -2,7 +2,13 @@
 providing event recommendations based on user preferences.
 """
 from typing import Literal
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
+from app.db.database import get_db
+from app.middleware.auth import get_current_user
+from app.models.planner import Planner
+from app.models.saved_event import SavedEvent
+from app.models.user import User
 from app.schemas.planner import PlannerRequest, PlannerResponse
 from app.services.planner_service import PlannerRecommendationService
 
@@ -14,38 +20,42 @@ def recommend_events(
     request: PlannerRequest,
     provider: Literal["openai", "claude"] = Query(
         "claude", description="Choose the recommendation provider"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
 ):
-    """Generate event recommendations using OpenAI or Claude.
-    Request:
-        {
-        "location": "San Francisco",
-        "date": "2026-03-14",
-        "timeRange": "10:00 AM - 8:00 PM",
-        "budget": 80,
-        "preference": "Outdoor",
-        "interests": ["food", "art", "nature"]
-        }
-
-    Response:
-        {
-        "title": "Saturday Plan in San Francisco",
-        "date": "2026-03-14",
-        "city": "San Francisco",
-        "summary": "A day plan based on outdoor preferences, moderate budget, and food interests.",
-        "activities": [{
-        "id": "1",
-        "time": "10:00 AM",
-        "location": "Blue Bottle Coffee, Hayes Valley",
-        "activity": "Coffee and breakfast",
-        "activityType": "Food",
-        "price": 18,
-        "info": "Popular cafe with light breakfast options and short wait times in the morning.",
-        "website": "https://example.com/blue-bottle"
-        }] 
-        }
-    """
+    """Generate event recommendations and save as a planner with activities."""
     service = PlannerRecommendationService(provider)
     try:
-        return service.get_recommendations(request)
+        raw = service.get_recommendations(request)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
+
+    result = raw if isinstance(raw, PlannerResponse) else PlannerResponse(**raw)
+
+    planner = Planner(
+        user_id=current_user.id,
+        title=result.title,
+        date=result.date,
+        city=result.city,
+        summary=result.summary,
+    )
+    db.add(planner)
+    db.flush()
+
+    for activity in result.activities:
+        event = SavedEvent(
+            user_id=current_user.id,
+            planner_id=planner.id,
+            title=activity.activity,
+            date=result.date,
+            time=activity.time,
+            location=activity.location,
+            tag=activity.activityType,
+            price=str(activity.price),
+        )
+        db.add(event)
+
+    db.commit()
+    db.refresh(planner)
+
+    return result

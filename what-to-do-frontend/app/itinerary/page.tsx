@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import styles from "./page.module.css";
 import { useAuth } from "../contexts/AuthContext";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+// All client-side fetches go through the Next.js rewrite proxy at /api/*.
+const API_BASE_URL = "/api";
 
 type HistoryItem = {
   id: string;
