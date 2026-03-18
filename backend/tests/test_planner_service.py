@@ -3,9 +3,7 @@
 from unittest.mock import MagicMock
 
 import pytest
-from fastapi.testclient import TestClient
 
-from app.main import app
 from app.routers import planner as planner_module
 
 
@@ -41,27 +39,23 @@ SAMPLE_RESPONSE = {
 
 
 @pytest.fixture
-def client():
-    mock_service = MagicMock()
-    mock_service.get_recommendations.return_value = SAMPLE_RESPONSE
+def mock_service():
+    mock = MagicMock()
+    mock.get_recommendations.return_value = SAMPLE_RESPONSE
 
     original = planner_module.PlannerRecommendationService
-    planner_module.PlannerRecommendationService = lambda *args, **kwargs: mock_service
-    try:
-        yield TestClient(app), mock_service
-    finally:
-        planner_module.PlannerRecommendationService = original
+    planner_module.PlannerRecommendationService = lambda *args, **kwargs: mock
+    yield mock
+    planner_module.PlannerRecommendationService = original
 
 
-def test_planner_returns_200(client):
-    tc, _ = client
-    response = tc.post(ROUTE, json=VALID_REQUEST)
+def test_planner_returns_200(auth_client, mock_service):
+    response = auth_client.post(ROUTE, json=VALID_REQUEST)
     assert response.status_code == 200
 
 
-def test_planner_response_shape(client):
-    tc, _ = client
-    response = tc.post(ROUTE, json=VALID_REQUEST)
+def test_planner_response_shape(auth_client, mock_service):
+    response = auth_client.post(ROUTE, json=VALID_REQUEST)
     data = response.json()
     assert data["title"] == "Saturday Plan in San Francisco"
     assert data["city"] == "San Francisco"
@@ -69,21 +63,18 @@ def test_planner_response_shape(client):
     assert data["activities"][0]["activityType"] == "Food"
 
 
-def test_planner_calls_service_once(client):
-    tc, mock_service = client
-    tc.post(ROUTE, json=VALID_REQUEST)
+def test_planner_calls_service_once(auth_client, mock_service):
+    auth_client.post(ROUTE, json=VALID_REQUEST)
     mock_service.get_recommendations.assert_called_once()
 
 
-def test_planner_invalid_body_returns_422(client):
-    tc, _ = client
-    response = tc.post(ROUTE, json={})
+def test_planner_invalid_body_returns_422(auth_client, mock_service):
+    response = auth_client.post(ROUTE, json={})
     assert response.status_code == 422
 
 
-def test_planner_service_error_returns_500(client):
-    tc, mock_service = client
+def test_planner_service_error_returns_500(auth_client, mock_service):
     mock_service.get_recommendations.side_effect = Exception("Planner failure")
-    response = tc.post(ROUTE, json=VALID_REQUEST)
+    response = auth_client.post(ROUTE, json=VALID_REQUEST)
     assert response.status_code == 500
     assert "Planner failure" in response.json()["detail"]

@@ -8,6 +8,7 @@ class SavedEvent(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    planner_id = Column(Integer, ForeignKey("planner.id", ondelete="SET NULL"), nullable=True)
     title = Column(String, nullable=False)
     date = Column(String, nullable=False)
     time = Column(String, nullable=False)
@@ -17,3 +18,4 @@ class SavedEvent(Base):
     saved_at = Column(DateTime, default=datetime.utcnow)
 
     user = relationship("User", back_populates="saved_events")
+    planner = relationship("Planner", back_populates="activities")

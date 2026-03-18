@@ -15,3 +15,4 @@ class User(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     saved_events = relationship("SavedEvent", back_populates="user", cascade="all, delete-orphan")
+    planners = relationship("Planner", back_populates="user", cascade="all, delete-orphan")
