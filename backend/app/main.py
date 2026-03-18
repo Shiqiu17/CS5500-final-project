@@ -8,7 +8,7 @@ Routers:
 """
 from fastapi import FastAPI
 from .middleware.cors import add_cors_middleware
-from .routers import health, events
+from .routers import health, events, planner
 from .routers.auth import router as auth_router
 from .routers.saved import router as saved_router
 from .db.database import engine, Base
@@ -27,3 +27,4 @@ app.include_router(health.router)
 app.include_router(events.router)
 app.include_router(auth_router)
 app.include_router(saved_router)
+app.include_router(planner.router)
