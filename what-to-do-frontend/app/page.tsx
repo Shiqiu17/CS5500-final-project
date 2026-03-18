@@ -4,6 +4,7 @@ import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import styles from "./page.module.css";
 import { useAuth } from "./contexts/AuthContext";
+import { downloadICS } from "./utils/ics";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
@@ -144,6 +145,20 @@ function buildResult(
   };
 }
 
+function buildDateTimeFromDateAndDisplayTime(dateStr: string, timeStr: string) {
+  if (!dateStr || !timeStr || timeStr === "TBD") {
+    return null;
+  }
+
+  const parsed = new Date(`${dateStr} ${timeStr}`);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return parsed;
+}
+
 export default function HomePage() {
   const { isLoggedIn, isLoading, token } = useAuth();
 
@@ -178,6 +193,34 @@ export default function HomePage() {
     if (price === null) return "N/A";
     if (price === 0) return "Free";
     return `$${price}`;
+  }
+
+  function handleDownloadActivityICS(activity: ItineraryActivity) {
+    if (!result?.date) {
+      alert("No date available for this activity.");
+      return;
+    }
+
+    const start = buildDateTimeFromDateAndDisplayTime(
+      result.date,
+      activity.time,
+    );
+
+    if (!start) {
+      alert("This activity does not have a valid date/time.");
+      return;
+    }
+
+    const end = new Date(start.getTime() + 60 * 60 * 1000);
+
+    downloadICS({
+      title: activity.activity,
+      description: activity.info,
+      location: activity.location,
+      start,
+      end,
+      url: activity.website,
+    });
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -472,6 +515,14 @@ export default function HomePage() {
                         <span className={styles.resultCost}>
                           {formatPrice(activity.price)}
                         </span>
+
+                        <button
+                          type="button"
+                          className={styles.saveButton}
+                          onClick={() => handleDownloadActivityICS(activity)}
+                        >
+                          Download .ics
+                        </button>
 
                         <button
                           type="button"
