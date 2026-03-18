@@ -4,12 +4,11 @@ import { useState } from "react";
 import type { FormEvent, ChangeEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useAuth } from "../contexts/AuthContext";
 import styles from "./page.module.css";
 
-// Backend API base URL (e.g. Django / FastAPI on port 8000)
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
-// Backend auth register is POST /auth/register
-const SIGNUP_ENDPOINT = `${API_BASE}/auth/register`;
+// Route through Next.js proxy to avoid browser-side CORS issues.
+const SIGNUP_ENDPOINT = "/api/auth/register";
 
 const INTEREST_OPTIONS = [
   "Food & dining",
@@ -30,6 +29,7 @@ const ENVIRONMENT_OPTIONS = [
 
 export default function SignUpPage() {
   const router = useRouter();
+  const { setAuth } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -131,18 +131,24 @@ export default function SignUpPage() {
         setErrorMessage(message);
         return;
       }
-      // Optional: auto sign in with returned token
       if (data.access_token && data.user) {
-        // Could use setAuth here if you import useAuth
-        // setAuth({ user: { id: String(data.user.id), username: data.user.username, email: data.user.email }, token: data.access_token });
+        setAuth({
+          user: {
+            id: String(data.user.id),
+            username: data.user.username,
+            email: data.user.email,
+          },
+          token: data.access_token,
+        });
+        router.push("/");
+        router.refresh();
+        return;
       }
       router.push("/login");
       router.refresh();
     } catch (error) {
       console.error("Signup request failed:", error);
-      setErrorMessage(
-        "Network error. Please check that the backend is running at " + API_BASE,
-      );
+      setErrorMessage("Network error. Please try again in a moment.");
     } finally {
       setIsSubmitting(false);
     }

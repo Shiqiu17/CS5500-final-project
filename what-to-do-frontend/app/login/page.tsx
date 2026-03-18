@@ -7,9 +7,8 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "../contexts/AuthContext";
 import styles from "./page.module.css";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
-// Backend auth is under /auth (e.g. POST /auth/login)
-const LOGIN_ENDPOINT = `${API_BASE}/auth/login`;
+// Route through Next.js proxy to avoid browser-side CORS issues.
+const LOGIN_ENDPOINT = "/api/auth/login";
 const FETCH_TIMEOUT_MS = 12_000;
 
 export default function LoginPage() {
@@ -79,35 +78,23 @@ export default function LoginPage() {
         setErrorMessage(message);
         return;
       }
-      if (data.access_token && data.user) {
-        setAuth({
-          user: {
-            id: String(data.user.id),
-            username: data.user.username,
-            email: data.user.email,
-          },
-          token: data.access_token,
-        });
-        router.push("/");
-        router.refresh();
+      if (!data.access_token || !data.user) {
+        setErrorMessage("Unexpected response from server.");
         return;
       }
-      // Mock: no backend yet — set auth state and user, then redirect
-      const mockId =
-        "user-" +
-        (username.trim() || "mock").toLowerCase().replace(/\s+/g, "-");
       setAuth({
-        user: { id: mockId, username: username.trim() || undefined },
-        token: "mock-token",
+        user: {
+          id: String(data.user.id),
+          username: data.user.username,
+          email: data.user.email,
+        },
+        token: data.access_token,
       });
       router.push("/");
       router.refresh();
     } catch (error) {
       console.error("Login request failed:", error);
-      setErrorMessage(
-        "Network error. Please check that the backend is running at " +
-          API_BASE,
-      );
+      setErrorMessage("Network error. Please try again in a moment.");
     } finally {
       setIsSubmitting(false);
     }
