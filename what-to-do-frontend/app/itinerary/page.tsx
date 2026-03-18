@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import styles from "./page.module.css";
 import { useAuth } from "../contexts/AuthContext";
+import { downloadICS } from "../utils/ics";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://127.0.0.1:8000";
@@ -11,6 +12,7 @@ type HistoryItem = {
   id: string;
   title: string;
   date: string;
+  time: string;
   location: string;
   summary: string;
   preference: "Indoor" | "Outdoor" | "Mixed";
@@ -52,6 +54,20 @@ function mapTagToPreference(tag: string): "Indoor" | "Outdoor" | "Mixed" {
   return "Mixed";
 }
 
+function buildDateTimeFromDateAndDisplayTime(dateStr: string, timeStr: string) {
+  if (!dateStr || !timeStr || timeStr === "TBD") {
+    return null;
+  }
+
+  const parsed = new Date(`${dateStr} ${timeStr}`);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return null;
+  }
+
+  return parsed;
+}
+
 export default function ItineraryPage() {
   const { isLoggedIn, isLoading, token } = useAuth();
 
@@ -88,6 +104,7 @@ export default function ItineraryPage() {
           id: String(item.id),
           title: item.title,
           date: item.date,
+          time: item.time,
           location: item.location,
           summary: `${item.time} • ${item.tag} • ${item.price}`,
           preference: mapTagToPreference(item.tag),
@@ -142,6 +159,25 @@ export default function ItineraryPage() {
     } finally {
       setIsDeletingId(null);
     }
+  }
+
+  function handleDownloadSavedICS(item: HistoryItem) {
+    const start = buildDateTimeFromDateAndDisplayTime(item.date, item.time);
+
+    if (!start) {
+      alert("This saved item does not have a valid date/time.");
+      return;
+    }
+
+    const end = new Date(start.getTime() + 60 * 60 * 1000);
+
+    downloadICS({
+      title: item.title,
+      description: item.summary,
+      location: item.location,
+      start,
+      end,
+    });
   }
 
   const filteredItems = useMemo(() => {
@@ -246,14 +282,24 @@ export default function ItineraryPage() {
                         <p className={styles.summary}>{item.summary}</p>
                       </div>
 
-                      <button
-                        type="button"
-                        className={styles.deleteButton}
-                        onClick={() => handleDeleteItinerary(item.id)}
-                        disabled={isDeleting}
-                      >
-                        {isDeleting ? "Deleting..." : "Delete"}
-                      </button>
+                      <div style={{ display: "flex", gap: "0.75rem" }}>
+                        <button
+                          type="button"
+                          className={styles.resetButton}
+                          onClick={() => handleDownloadSavedICS(item)}
+                        >
+                          Download .ics
+                        </button>
+
+                        <button
+                          type="button"
+                          className={styles.deleteButton}
+                          onClick={() => handleDeleteItinerary(item.id)}
+                          disabled={isDeleting}
+                        >
+                          {isDeleting ? "Deleting..." : "Delete"}
+                        </button>
+                      </div>
                     </div>
 
                     <div className={styles.metaRow}>
