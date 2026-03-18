@@ -250,6 +250,7 @@ export default function SignUpPage() {
             </div>
 
             {/* --- Preferences (hobbies / interests) --- */}
+            {/*
             <div className={styles.sectionLabel}>Preferences — what do you enjoy?</div>
             <p className={styles.sectionHint}>We’ll use this to suggest events and activities.</p>
             <div className={styles.checkboxGrid}>
@@ -270,6 +271,7 @@ export default function SignUpPage() {
             </div>
 
             {/* --- Restrictions / event preferences --- */}
+            {/*
             <div className={styles.sectionLabel}>Event preferences & restrictions</div>
             <p className={styles.sectionHint}>Indoor/outdoor, diet, accessibility, etc.</p>
             <div className={styles.fieldGroup}>
@@ -323,6 +325,7 @@ export default function SignUpPage() {
                 disabled={isSubmitting}
               />
             </div>
+            */}
 
             <div className={styles.formActions}>
               <button
