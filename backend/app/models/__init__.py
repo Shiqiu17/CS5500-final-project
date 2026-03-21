@@ -1,5 +1,4 @@
-from .user import User
-from .search_history import SearchHistory
-from .saved_event import SavedEvent
+from app.models.user import User
+from app.models.saved_event import SavedEvent
 
-__all__ = ["User", "SearchHistory", "SavedEvent"]
+__all__ = ["User", "SavedEvent"]
