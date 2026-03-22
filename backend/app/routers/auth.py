@@ -47,7 +47,11 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
         username=user_data.username,
         email=user_data.email,
         password_hash=hashed_password,
-        name=user_data.name
+        name=user_data.name,        
+        interests=user_data.interests,
+        environment_preference=user_data.environment_preference,
+        dietary_restrictions=user_data.dietary_restrictions,
+        accessibility_needs=user_data.accessibility_needs,
     )
 
     db.add(new_user)

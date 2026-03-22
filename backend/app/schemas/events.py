@@ -8,6 +8,9 @@ class EventRequest(BaseModel):
     date_range: str | None = Field(None, description="Preferred date range, e.g. '2026-03-15 to 2026-03-20'")
     day_start_time: str | None = Field(None, description="Preferred start time of day: '09:00', '9AM', '9:30pm'") # 9m, 12pm?
     day_end_time: str | None = Field(None, description="Preferred end time of day: '21:00', '9PM', '9:30pm'") # 9pm, 2am?
+    preference: str | None = Field(None, description="Indoor, Outdoor, or Mixed")
+    ignore_previous_preference: bool = Field(False, description="If true, skip user's saved preferences")
+
 
 class EventResponse(BaseModel):
     id: str

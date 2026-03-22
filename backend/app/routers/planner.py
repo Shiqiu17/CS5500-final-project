@@ -24,6 +24,11 @@ def recommend_events(
     db: Session = Depends(get_db),
 ):
     """Generate event recommendations and save as a planner with activities."""
+    if not request.ignore_previous_preference:
+        if not request.preference:
+            request.preference = current_user.environment_preference
+        if not request.interests:
+            request.interests = current_user.interests if current_user.interests else []
     service = PlannerRecommendationService(provider)
     try:
         raw = service.get_recommendations(request)

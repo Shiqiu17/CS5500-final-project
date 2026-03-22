@@ -110,6 +110,10 @@ export default function SignUpPage() {
       email: email.trim(),
       password,
       name: null as string | null,
+      interests:interests.join(", "),
+      environment_preference: environment,
+      dietary_restrictions: dietaryRestrictions,
+      accessibility_needs: accessibility,
     };
 
     try {

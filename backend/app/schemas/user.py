@@ -7,6 +7,10 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str
     name: Optional[str] = None
+    interests: Optional[str] = None
+    environment_preference: Optional[str] = None
+    dietary_restrictions: Optional[str] = None 
+    accessibility_needs: Optional[str] = None
 
 class UserLogin(BaseModel):
     username: str

@@ -22,6 +22,7 @@ type PlannerFormData = {
   budget: string;
   preference: string;
   interests: string;
+  ignorePreference: boolean;
 };
 
 type PlannerRequestPayload = {
@@ -96,6 +97,7 @@ const initialFormData: PlannerFormData = {
   budget: "",
   preference: "Mixed",
   interests: "",
+  ignorePreference: false,
 };
 
 function getAuthHeaders(token: string | null): Record<string, string> {
@@ -238,6 +240,7 @@ export default function HomePage() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            ...getAuthHeaders(token)
           },
           body: JSON.stringify({
             city: payload.city,
@@ -246,6 +249,8 @@ export default function HomePage() {
             date_range: payload.dateRange,
             day_start_time: payload.dayStartTime,
             day_end_time: payload.dayEndTime,
+            preference: formData.preference,
+            ignore_previous_preference: formData.ignorePreference,
           }),
         },
       );
@@ -465,6 +470,23 @@ export default function HomePage() {
                 value={formData.interests}
                 onChange={handleChange}
               />
+            </div>
+
+            <div className={styles.fieldGroup}>
+              <label className={styles.checkboxLabel}>
+                <input
+                  type="checkbox"
+                  name="ignorePreference"
+                  checked={formData.ignorePreference}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      ignorePreference: e.target.checked,
+                    }))
+                  }
+                />
+                <span>Ignore my previous preferences</span>
+              </label>
             </div>
 
             <div className={styles.formActions}>

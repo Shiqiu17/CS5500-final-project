@@ -10,6 +10,7 @@ class PlannerRequest(BaseModel):
     budget: float | None = None
     preference: str | None = None
     interests: list[str]
+    ignore_previous_preference: bool = False
 
 
 class PlannerResponse(BaseModel):
