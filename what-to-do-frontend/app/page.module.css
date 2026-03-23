@@ -13,19 +13,33 @@
 .form { display: grid; gap: 22px; }
 .fieldGroup { display: grid; gap: 10px; }
 .fieldGroup label { font-size: 0.94rem; font-weight: 700; color: #334155; }
-.fieldGroup input, .fieldGroup select { width: 100%; border: 1px solid rgba(15,23,42,0.1); border-radius: 18px; padding: 14px 16px; font-size: 1rem; outline: none; background: white; color: #0f172a; transition: border-color 0.2s ease, box-shadow 0.2s ease; }
+.fieldGroup input, .fieldGroup select { width: 100%; border: 1px solid rgba(15,23,42,0.1); border-radius: 18px; padding: 14px 16px; font-size: 1rem; outline: none; background: white; color: #0f172a; transition: border-color 0.2s ease, box-shadow 0.2s ease; box-sizing: border-box; }
 .fieldGroup input:focus, .fieldGroup select:focus { border-color: #6366f1; box-shadow: 0 0 0 4px rgba(99,102,241,0.12); }
 .twoColumn { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 .formActions { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 8px; }
 .primaryButton { border-radius: 999px; padding: 14px 20px; font-weight: 700; cursor: pointer; transition: transform 0.2s ease; border: none; background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; box-shadow: 0 16px 40px rgba(79,70,229,0.18); }
 .primaryButton:hover { transform: translateY(-1px); }
 .primaryButton:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+
+/* ---- City autocomplete ---- */
+.cityInputWrapper { position: relative; width: 100%; }
+.cityInputWrapper input { width: 100%; border: 1px solid rgba(15,23,42,0.1); border-radius: 18px; padding: 14px 16px; font-size: 1rem; outline: none; background: white; color: #0f172a; transition: border-color 0.2s ease, box-shadow 0.2s ease; box-sizing: border-box; }
+.cityInputWrapper input:focus { border-color: #6366f1; box-shadow: 0 0 0 4px rgba(99,102,241,0.12); }
+.citySuggestions { position: absolute; top: calc(100% + 6px); left: 0; right: 0; background: white; border: 1px solid rgba(15,23,42,0.1); border-radius: 18px; box-shadow: 0 16px 48px rgba(15,23,42,0.12); list-style: none; margin: 0; padding: 6px; z-index: 100; overflow: hidden; }
+.citySuggestionItem { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-radius: 12px; cursor: pointer; transition: background 0.15s ease; font-size: 0.95rem; }
+.citySuggestionItem:hover, .citySuggestionActive { background: #eef2ff; }
+.cityName { font-weight: 700; color: #0f172a; }
+.cityState { font-size: 0.82rem; font-weight: 600; color: #94a3b8; margin-left: 8px; white-space: nowrap; }
+
+/* ---- Preferences notice ---- */
 .prefNotice { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 18px; padding: 12px 16px; margin-bottom: 20px; font-size: 0.9rem; color: #4338ca; font-weight: 600; }
 .prefHint { font-weight: 500; color: #6366f1; font-size: 0.85rem; }
 .ignoreButton { border-radius: 999px; padding: 8px 14px; font-size: 0.85rem; font-weight: 700; cursor: pointer; background: white; color: #4338ca; border: 1px solid #a5b4fc; transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease; white-space: nowrap; }
 .ignoreButton:hover { background: #4338ca; color: white; transform: translateY(-1px); }
 .ignoreActiveButton { border: none; border-radius: 999px; padding: 8px 14px; font-size: 0.85rem; font-weight: 700; cursor: pointer; background: #4338ca; color: white; transition: background 0.2s ease, transform 0.15s ease; white-space: nowrap; }
 .ignoreActiveButton:hover { background: #3730a3; transform: translateY(-1px); }
+
+/* ---- Results ---- */
 .resultSection { margin-top: 72px; display: grid; gap: 20px; }
 .resultHeader { max-width: 760px; }
 .resultTitle { margin: 0; color: #0f172a; font-size: 2rem; letter-spacing: -0.03em; }
