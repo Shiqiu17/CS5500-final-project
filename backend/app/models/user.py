@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import Column, Integer, String, DateTime, JSON
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from app.db.database import Base
@@ -11,10 +11,7 @@ class User(Base):
     email = Column(String, unique=True, index=True, nullable=False)
     password_hash = Column(String, nullable=False)
     name = Column(String, nullable=True)
-    interests = Column(String, nullable=True)
-    environment_preference = Column(String, nullable=True)
-    dietary_restrictions = Column(String, nullable=True)
-    accessibility_needs = Column(String, nullable=True)
+    preferences = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

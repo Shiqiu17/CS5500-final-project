@@ -11,16 +11,22 @@ import {
 
 const AUTH_STORAGE_KEY = "whattodo_auth";
 
+export type UserPreferences = {
+  interests: string[];
+  environment: string;
+  dietary_restrictions: string;
+  accessibility: string;
+  other_restrictions: string;
+};
+
 export type User = {
   id: string;
   username?: string;
   email?: string;
+  preferences?: UserPreferences | null;
 };
 
-type StoredAuth = {
-  user: User;
-  token?: string;
-};
+type StoredAuth = { user: User; token?: string };
 
 type AuthContextValue = {
   isLoggedIn: boolean;
@@ -32,36 +38,20 @@ type AuthContextValue = {
 };
 
 function readStored(): StoredAuth | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
+  if (typeof window === "undefined") return null;
   try {
     const raw = localStorage.getItem(AUTH_STORAGE_KEY);
-    if (!raw) {
-      return null;
-    }
-
+    if (!raw) return null;
     return JSON.parse(raw) as StoredAuth;
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 }
 
 function writeStored(payload: StoredAuth) {
-  try {
-    localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(payload));
-  } catch {
-    // ignore
-  }
+  try { localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(payload)); } catch {}
 }
 
 function clearStored() {
-  try {
-    localStorage.removeItem(AUTH_STORAGE_KEY);
-  } catch {
-    // ignore
-  }
+  try { localStorage.removeItem(AUTH_STORAGE_KEY); } catch {}
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -73,49 +63,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const stored = readStored();
-
-    if (stored?.user) {
-      setUser(stored.user);
-      setToken(stored.token ?? null);
-    }
-
+    if (stored?.user) { setUser(stored.user); setToken(stored.token ?? null); }
     setIsLoading(false);
   }, []);
 
   const setAuth = useCallback((payload: { user: User; token?: string }) => {
-    writeStored({
-      user: payload.user,
-      token: payload.token,
-    });
-
+    writeStored({ user: payload.user, token: payload.token });
     setUser(payload.user);
     setToken(payload.token ?? null);
   }, []);
 
   const logout = useCallback(() => {
-    clearStored();
-    setUser(null);
-    setToken(null);
+    clearStored(); setUser(null); setToken(null);
   }, []);
 
-  const value: AuthContextValue = {
-    isLoggedIn: !!token,
-    isLoading,
-    user,
-    token,
-    setAuth,
-    logout,
-  };
-
+  const value: AuthContextValue = { isLoggedIn: !!token, isLoading, user, token, setAuth, logout };
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
-
-  if (!ctx) {
-    throw new Error("useAuth must be used within AuthProvider");
-  }
-
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 }
