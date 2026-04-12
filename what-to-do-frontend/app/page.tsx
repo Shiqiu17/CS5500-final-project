@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import styles from "./page.module.css";
 import { useAuth } from "./contexts/AuthContext";
 
-// All client-side fetches go through the Next.js rewrite proxy at /api/*.
 const API_BASE_URL = "/api";
+const ITINERARY_STORAGE_KEY = "planner_home_itinerary";
 
 const features = [
   "Smart recommendations",
@@ -82,6 +82,22 @@ type SavedEventResponse = {
   saved_at: string;
 };
 
+type PersistedHomeState = {
+  formData: PlannerFormData;
+  result: ItineraryResponse | null;
+  savedActivityIds: string[];
+  savedRecordIds: Record<string, number>;
+};
+
+const initialFormData: PlannerFormData = {
+  location: "",
+  date: "",
+  timeRange: "",
+  budget: "",
+  preference: "Mixed",
+  interests: "",
+};
+
 function getAuthHeaders(token: string | null): Record<string, string> {
   if (!token) {
     return {};
@@ -147,21 +163,50 @@ function buildResult(
 export default function HomePage() {
   const { isLoggedIn, isLoading, token } = useAuth();
 
-  const [formData, setFormData] = useState<PlannerFormData>({
-    location: "",
-    date: "",
-    timeRange: "",
-    budget: "",
-    preference: "Mixed",
-    interests: "",
-  });
-
+  const [formData, setFormData] = useState<PlannerFormData>(initialFormData);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [result, setResult] = useState<ItineraryResponse | null>(null);
   const [savedActivityIds, setSavedActivityIds] = useState<string[]>([]);
   const [savedRecordIds, setSavedRecordIds] = useState<Record<string, number>>(
     {},
   );
+  const [hasHydrated, setHasHydrated] = useState(false);
+
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem(ITINERARY_STORAGE_KEY);
+
+      if (!raw) {
+        setHasHydrated(true);
+        return;
+      }
+
+      const parsed: PersistedHomeState = JSON.parse(raw);
+
+      setFormData(parsed.formData ?? initialFormData);
+      setResult(parsed.result ?? null);
+      setSavedActivityIds(parsed.savedActivityIds ?? []);
+      setSavedRecordIds(parsed.savedRecordIds ?? {});
+    } catch (error) {
+      console.error("Failed to restore itinerary from sessionStorage:", error);
+      sessionStorage.removeItem(ITINERARY_STORAGE_KEY);
+    } finally {
+      setHasHydrated(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+
+    const data: PersistedHomeState = {
+      formData,
+      result,
+      savedActivityIds,
+      savedRecordIds,
+    };
+
+    sessionStorage.setItem(ITINERARY_STORAGE_KEY, JSON.stringify(data));
+  }, [hasHydrated, formData, result, savedActivityIds, savedRecordIds]);
 
   function handleChange(
     event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,

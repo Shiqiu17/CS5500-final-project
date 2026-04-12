@@ -147,3 +147,12 @@ Testing and improvements
 Deployment and final documentation/demo
 
 **Total Estimated Time:** 9 weeks
+
+# Deployment Details
+The application API is hosted on AWS apprunner, and the frontend is hosted on Vercel. The backend API is accessible at `https://bmjumiukye.us-east-1.awsapprunner.com/`, and the frontend is accessible at `https://what-to-do-app-two.vercel.app/`.
+
+The workflow for deployment includes:
+1. **Development**: Code is developed locally and pushed to GitHub.
+2. **CI/CD**: GitHub Actions are set up to automatically pushes the image to AWS ECR. The image must be deployed manually to AWS App Runner.
+3. **Frontend Deployment**: The frontend is deployed to Vercel, which automatically builds and deploys the application when changes are pushed to the main branch.
+4. **Testing**: After deployment, the application is tested to ensure all functionalities work as expected.
