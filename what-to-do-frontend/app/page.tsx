@@ -233,7 +233,7 @@ export default function HomePage() {
 
     try {
       const response = await fetch(
-        `${API_BASE_URL}/events/recommendations?provider=openai`,
+        `${API_BASE_URL}/events/recommendations?provider=claude`,
         {
           method: "POST",
           headers: {
