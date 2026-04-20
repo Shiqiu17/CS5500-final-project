@@ -33,7 +33,7 @@ class OpenAIRecommendationService(EventRecommendationService):
         try:
             response = self._client.responses.create(
                 model="gpt-4o",
-                # tools=[{"type": "web_search_preview"}],
+                tools=[{"type": "web_search_preview"}],
                 instructions=self._system_prompt,
                 input=user_message,
                 temperature=0.2,
