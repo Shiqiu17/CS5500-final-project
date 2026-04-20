@@ -1,5 +1,4 @@
 import json
-import logging
 from pathlib import Path
 from datetime import date, datetime, time
 from abc import ABC, abstractmethod
@@ -12,15 +11,13 @@ from app.schemas.events import EventRequest, Event
 PROMPT_PATH = BACKEND_DIR / "prompts" / "prompt.txt"
 VALIDATION_PROMPT_PATH = BACKEND_DIR / "prompts" / "validation_prompt.txt"
 
-logger = logging.getLogger(__name__)
-
 
 class EventRecommendationService(ABC):
 
     def __init__(self):
         self._system_prompt = PROMPT_PATH.read_text(encoding="utf-8")
         self._validation_prompt = VALIDATION_PROMPT_PATH.read_text(encoding="utf-8")
-        logger.info("EventRecommendationService initialized")
+        print("EventRecommendationService initialized")
 
     def _build_user_message(self, request: EventRequest) -> str:
         parts = [
@@ -32,12 +29,12 @@ class EventRecommendationService(ABC):
         if request.date_range:
             parts.append(f"Preferred dates: {request.date_range}.")
         message = " ".join(parts)
-        logger.info("Built user message preview=%s", message[:500])
+        print("Built user message preview=", message[:500])
         return message
 
     def _parse_events(self, content: str) -> list[Event]:
-        logger.info("Starting _parse_events")
-        logger.info("Raw content preview=%s", content[:1000] if content else "")
+        print("Starting _parse_events")
+        print("Raw content preview=", content[:1000] if content else "")
 
         content = content.strip()
         if "```" in content:
@@ -51,28 +48,28 @@ class EventRecommendationService(ABC):
         if start != -1 and end != -1:
             content = content[start:end + 1]
 
-        logger.info("Normalized content preview=%s", content[:1000] if content else "")
+        print("Normalized content preview=", content[:1000] if content else "")
 
         events_data = json.loads(content)
         events = [Event(**event) for event in events_data]
-        logger.info("Parsed events count=%s", len(events))
+        print("Parsed events count=", len(events))
         return events
 
     def _sort(self, events: list[Event]) -> list[Event]:
-        logger.info("Sorting %s events", len(events))
+        print("Sorting events count=", len(events))
         return sorted(events, key=lambda e: e.start_time)
 
     def _validate_events(self, events: list[Event], request: EventRequest) -> list[Event]:
-        logger.info("Starting _validate_events with %s events", len(events))
+        print("Starting _validate_events with events count=", len(events))
         if not events:
-            logger.info("No events to validate")
+            print("No events to validate")
             return events
 
         events_json = json.dumps([e.model_dump() for e in events])
         user_context = f"User requested: city={request.city}, date_range={request.date_range}, today={date.today().isoformat()}"
 
         client = Anthropic(api_key=settings.claude_api_key)
-        logger.info("Calling Anthropic validation model")
+        print("Calling Anthropic validation model")
 
         response = client.messages.create(
             model="claude-sonnet-4-20250514",
@@ -84,9 +81,9 @@ class EventRecommendationService(ABC):
             temperature=0,
         )
 
-        logger.info("Anthropic validation model returned")
+        print("Anthropic validation model returned")
         text = response.content[0].text
-        logger.info("Validation response preview=%s", text[:1000] if text else "")
+        print("Validation response preview=", text[:1000] if text else "")
         return self._parse_events(text)
 
     @staticmethod
@@ -99,22 +96,24 @@ class EventRecommendationService(ABC):
         return None
 
     def _filter_by_time(self, events: list[Event], request: EventRequest) -> list[Event]:
-        logger.info(
-            "Filtering events by time. count=%s start=%s end=%s",
+        print(
+            "Filtering events by time. count=",
             len(events),
+            "start=",
             request.day_start_time,
+            "end=",
             request.day_end_time,
         )
 
         if not request.day_start_time and not request.day_end_time:
-            logger.info("No time filters provided")
+            print("No time filters provided")
             return events
 
         start_bound = self._parse_time(request.day_start_time) if request.day_start_time else None
         end_bound = self._parse_time(request.day_end_time) if request.day_end_time else None
 
         if start_bound is None and end_bound is None:
-            logger.info("Could not parse any time bounds")
+            print("Could not parse any time bounds")
             return events
 
         filtered = []
@@ -123,10 +122,12 @@ class EventRecommendationService(ABC):
                 ev_start = datetime.fromisoformat(event.start_time)
                 ev_end = datetime.fromisoformat(event.end_time)
             except (ValueError, TypeError):
-                logger.warning(
-                    "Could not parse event times for event=%s start=%s end=%s",
+                print(
+                    "Could not parse event times for event=",
                     getattr(event, "name", None),
+                    "start=",
                     getattr(event, "start_time", None),
+                    "end=",
                     getattr(event, "end_time", None),
                 )
                 filtered.append(event)
@@ -153,7 +154,7 @@ class EventRecommendationService(ABC):
             event.duration_minutes = int((ev_end - ev_start).total_seconds() / 60)
             filtered.append(event)
 
-        logger.info("Filtered events count=%s", len(filtered))
+        print("Filtered events count=", len(filtered))
         return filtered
 
     @abstractmethod
