@@ -7,6 +7,7 @@ import { useAuth } from "../contexts/AuthContext";
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ??
   "https://mk2tba6npp.us-east-1.awsapprunner.com";
+const ITINERARY_STORAGE_KEY = "planner_home_itinerary";
 
 type HistoryItem = {
   id: string;
@@ -51,6 +52,41 @@ function mapTagToPreference(tag: string): "Indoor" | "Outdoor" | "Mixed" {
   }
 
   return "Mixed";
+}
+
+function removeDeletedItemFromHomeCache(deletedItemId: string) {
+  try {
+    const raw = sessionStorage.getItem(ITINERARY_STORAGE_KEY);
+
+    if (!raw) {
+      return;
+    }
+
+    const parsed = JSON.parse(raw);
+
+    const nextSavedRecordIds = { ...(parsed.savedRecordIds ?? {}) };
+
+    Object.keys(nextSavedRecordIds).forEach((activityId) => {
+      if (String(nextSavedRecordIds[activityId]) === deletedItemId) {
+        delete nextSavedRecordIds[activityId];
+      }
+    });
+
+    const nextSavedActivityIds = (parsed.savedActivityIds ?? []).filter(
+      (activityId: string) => nextSavedRecordIds[activityId] !== undefined,
+    );
+
+    sessionStorage.setItem(
+      ITINERARY_STORAGE_KEY,
+      JSON.stringify({
+        ...parsed,
+        savedActivityIds: nextSavedActivityIds,
+        savedRecordIds: nextSavedRecordIds,
+      }),
+    );
+  } catch (error) {
+    console.error("Failed to sync home page cache:", error);
+  }
 }
 
 export default function ItineraryPage() {
@@ -137,6 +173,7 @@ export default function ItineraryPage() {
       }
 
       setItems((prev) => prev.filter((item) => item.id !== itemId));
+      removeDeletedItemFromHomeCache(itemId);
     } catch (error) {
       console.error("Failed to delete itinerary:", error);
       alert("Something went wrong while deleting the itinerary.");
