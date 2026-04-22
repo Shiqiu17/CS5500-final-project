@@ -90,21 +90,72 @@ function removeDeletedItemFromHomeCache(deletedItemId: string) {
   }
 }
 
-function formatDateTime(date: string, time?: string) {
-  const safeTime = time?.trim() ? time.trim() : "09:00";
-  const normalizedTime = safeTime.length === 5 ? `${safeTime}:00` : safeTime;
-  return new Date(`${date}T${normalizedTime}`);
+function pad(value: number) {
+  return String(value).padStart(2, "0");
+}
+
+function parseTimeTo24Hour(time?: string) {
+  if (!time || !time.trim()) {
+    return { hour: 9, minute: 0 };
+  }
+
+  const raw = time.trim().toLowerCase();
+
+  const ampmMatch = raw.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)/i);
+  if (ampmMatch) {
+    let hour = Number(ampmMatch[1]);
+    const minute = Number(ampmMatch[2] ?? "0");
+    const meridiem = ampmMatch[3].toLowerCase();
+
+    if (meridiem === "pm" && hour !== 12) {
+      hour += 12;
+    }
+
+    if (meridiem === "am" && hour === 12) {
+      hour = 0;
+    }
+
+    return { hour, minute };
+  }
+
+  const twentyFourHourMatch = raw.match(/(\d{1,2}):(\d{2})/);
+  if (twentyFourHourMatch) {
+    return {
+      hour: Number(twentyFourHourMatch[1]),
+      minute: Number(twentyFourHourMatch[2]),
+    };
+  }
+
+  const hourOnlyMatch = raw.match(/\b(\d{1,2})\b/);
+  if (hourOnlyMatch) {
+    return {
+      hour: Number(hourOnlyMatch[1]),
+      minute: 0,
+    };
+  }
+
+  // Fallback
+  return { hour: 9, minute: 0 };
+}
+
+function createLocalDate(date: string, time?: string) {
+  const parts = date.split("-").map(Number);
+
+  if (parts.length !== 3 || parts.some(Number.isNaN)) {
+    throw new Error(`Invalid date: ${date}`);
+  }
+
+  const [year, month, day] = parts;
+  const { hour, minute } = parseTimeTo24Hour(time);
+
+  return new Date(year, month - 1, day, hour, minute, 0);
 }
 
 function toICSDateTime(date: Date) {
-  const yyyy = date.getFullYear();
-  const mm = String(date.getMonth() + 1).padStart(2, "0");
-  const dd = String(date.getDate()).padStart(2, "0");
-  const hh = String(date.getHours()).padStart(2, "0");
-  const min = String(date.getMinutes()).padStart(2, "0");
-  const ss = String(date.getSeconds()).padStart(2, "0");
-
-  return `${yyyy}${mm}${dd}T${hh}${min}${ss}`;
+  return (
+    `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}` +
+    `T${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`
+  );
 }
 
 function escapeICS(text: string) {
@@ -116,42 +167,60 @@ function escapeICS(text: string) {
 }
 
 function downloadICS(item: HistoryItem) {
-  const startDate = formatDateTime(item.date, item.time);
-  const endDate = new Date(startDate);
-  endDate.setHours(endDate.getHours() + 2);
+  try {
+    const startDate = createLocalDate(item.date, item.time);
 
-  const uid = `saved-${item.id}@planner`;
-  const dtstamp = new Date()
-    .toISOString()
-    .replace(/[-:]/g, "")
-    .replace(/\.\d{3}Z/, "Z");
+    if (Number.isNaN(startDate.getTime())) {
+      throw new Error("Invalid start date");
+    }
 
-  const lines = [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "PRODID:-//Planner App//Saved Itinerary//EN",
-    "BEGIN:VEVENT",
-    `UID:${uid}`,
-    `DTSTAMP:${dtstamp}`,
-    `DTSTART:${toICSDateTime(startDate)}`,
-    `DTEND:${toICSDateTime(endDate)}`,
-    `SUMMARY:${escapeICS(item.title)}`,
-    `LOCATION:${escapeICS(item.location)}`,
-    "END:VEVENT",
-    "END:VCALENDAR",
-  ];
+    const endDate = new Date(startDate);
+    endDate.setHours(endDate.getHours() + 2);
 
-  const blob = new Blob([lines.join("\r\n")], {
-    type: "text/calendar;charset=utf-8",
-  });
+    const uid = `saved-${item.id}@planner`;
+    const dtstamp = new Date()
+      .toISOString()
+      .replace(/[-:]/g, "")
+      .replace(/\.\d{3}Z/, "Z");
 
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = `${item.title.replace(/[^\w\s-]/g, "").replace(/\s+/g, "-")}.ics`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(link.href);
+    const lines = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "CALSCALE:GREGORIAN",
+      "METHOD:PUBLISH",
+      "PRODID:-//Planner App//Saved Itinerary//EN",
+      "BEGIN:VEVENT",
+      `UID:${uid}`,
+      `DTSTAMP:${dtstamp}`,
+      `DTSTART:${toICSDateTime(startDate)}`,
+      `DTEND:${toICSDateTime(endDate)}`,
+      `SUMMARY:${escapeICS(item.title)}`,
+      `LOCATION:${escapeICS(item.location)}`,
+      `DESCRIPTION:${escapeICS(`${item.title} at ${item.location}`)}`,
+      "END:VEVENT",
+      "END:VCALENDAR",
+    ];
+
+    const blob = new Blob([lines.join("\r\n")], {
+      type: "text/calendar;charset=utf-8",
+    });
+
+    const safeFileName = item.title
+      .replace(/[^\w\s-]/g, "")
+      .trim()
+      .replace(/\s+/g, "-");
+
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${safeFileName || "event"}.ics`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+  } catch (error) {
+    console.error("Failed to generate ICS:", error);
+    alert("This event has an invalid date or time format.");
+  }
 }
 
 export default function ItineraryPage() {
@@ -250,10 +319,12 @@ export default function ItineraryPage() {
 
   const filteredItems = useMemo(() => {
     return items.filter((item) => {
+      const query = search.toLowerCase();
+
       const matchesSearch =
-        item.title.toLowerCase().includes(search.toLowerCase()) ||
-        item.location.toLowerCase().includes(search.toLowerCase()) ||
-        item.summary.toLowerCase().includes(search.toLowerCase());
+        item.title.toLowerCase().includes(query) ||
+        item.location.toLowerCase().includes(query) ||
+        item.summary.toLowerCase().includes(query);
 
       const matchesPreference =
         preferenceFilter === "All" || item.preference === preferenceFilter;
