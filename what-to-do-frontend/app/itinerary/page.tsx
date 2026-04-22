@@ -16,6 +16,7 @@ type HistoryItem = {
   location: string;
   summary: string;
   preference: "Indoor" | "Outdoor" | "Mixed";
+  time?: string;
 };
 
 type SavedEventApiItem = {
@@ -89,6 +90,70 @@ function removeDeletedItemFromHomeCache(deletedItemId: string) {
   }
 }
 
+function formatDateTime(date: string, time?: string) {
+  const safeTime = time?.trim() ? time.trim() : "09:00";
+  const normalizedTime = safeTime.length === 5 ? `${safeTime}:00` : safeTime;
+  return new Date(`${date}T${normalizedTime}`);
+}
+
+function toICSDateTime(date: Date) {
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  const hh = String(date.getHours()).padStart(2, "0");
+  const min = String(date.getMinutes()).padStart(2, "0");
+  const ss = String(date.getSeconds()).padStart(2, "0");
+
+  return `${yyyy}${mm}${dd}T${hh}${min}${ss}`;
+}
+
+function escapeICS(text: string) {
+  return text
+    .replace(/\\/g, "\\\\")
+    .replace(/\n/g, "\\n")
+    .replace(/,/g, "\\,")
+    .replace(/;/g, "\\;");
+}
+
+function downloadICS(item: HistoryItem) {
+  const startDate = formatDateTime(item.date, item.time);
+  const endDate = new Date(startDate);
+  endDate.setHours(endDate.getHours() + 2);
+
+  const uid = `saved-${item.id}@planner`;
+  const dtstamp = new Date()
+    .toISOString()
+    .replace(/[-:]/g, "")
+    .replace(/\.\d{3}Z/, "Z");
+
+  const lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Planner App//Saved Itinerary//EN",
+    "BEGIN:VEVENT",
+    `UID:${uid}`,
+    `DTSTAMP:${dtstamp}`,
+    `DTSTART:${toICSDateTime(startDate)}`,
+    `DTEND:${toICSDateTime(endDate)}`,
+    `SUMMARY:${escapeICS(item.title)}`,
+    `LOCATION:${escapeICS(item.location)}`,
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ];
+
+  const blob = new Blob([lines.join("\r\n")], {
+    type: "text/calendar;charset=utf-8",
+  });
+
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `${item.title.replace(/[^\w\s-]/g, "").replace(/\s+/g, "-")}.ics`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(link.href);
+}
+
 export default function ItineraryPage() {
   const { isLoggedIn, isLoading, token } = useAuth();
 
@@ -128,6 +193,7 @@ export default function ItineraryPage() {
           location: item.location,
           summary: `${item.time} • ${item.tag} • ${item.price}`,
           preference: mapTagToPreference(item.tag),
+          time: item.time,
         }));
 
         setItems(mappedItems);
@@ -284,14 +350,24 @@ export default function ItineraryPage() {
                         <p className={styles.summary}>{item.summary}</p>
                       </div>
 
-                      <button
-                        type="button"
-                        className={styles.deleteButton}
-                        onClick={() => handleDeleteItinerary(item.id)}
-                        disabled={isDeleting}
-                      >
-                        {isDeleting ? "Deleting..." : "Delete"}
-                      </button>
+                      <div className={styles.cardActions}>
+                        <button
+                          type="button"
+                          className={styles.downloadButton}
+                          onClick={() => downloadICS(item)}
+                        >
+                          Download ICS
+                        </button>
+
+                        <button
+                          type="button"
+                          className={styles.deleteButton}
+                          onClick={() => handleDeleteItinerary(item.id)}
+                          disabled={isDeleting}
+                        >
+                          {isDeleting ? "Deleting..." : "Delete"}
+                        </button>
+                      </div>
                     </div>
 
                     <div className={styles.metaRow}>
